@@ -1,4 +1,6 @@
 #include <iostream>
+#include <iomanip>
+#include <sstream>
 
 #include "controller.hh"
 #include "timestamp.hh"
@@ -11,7 +13,19 @@ Controller::Controller(const bool debug)
   , window_size_(10)
   , datagram_num_(0)
   , datagram_list_()
-{}
+  , log_()
+{
+    time_t t = time(nullptr);
+    struct tm *now = localtime(&t);
+
+    ostringstream oss;
+    oss << put_time(now, "%Y-%m-%dT%H-%M");
+    string filename = oss.str() + ".log";
+
+    cerr << "Log saved to " + filename << endl;
+
+    log_.reset(new ofstream(filename));
+}
 
 /* Get current window size, in datagrams */
 unsigned int Controller::window_size(void)
@@ -35,6 +49,17 @@ void Controller::timer_fires(void)
     cerr << "At time " << timestamp_ms()
     << " timeout timer fires" << endl;
   }
+
+  float loss_rate = (float) datagram_list_.size() / datagram_num_;
+  *log_ << window_size_ << " " << loss_rate << endl;
+
+  datagram_num_ = 0;
+  datagram_list_.clear();
+
+  if (window_size_ >= 1000 || (window_size_ >= 500 && loss_rate >= 0.5))
+    window_size_ = 10;
+  else
+    window_size_ += 10;
 }
 
 /* A datagram was sent */

@@ -3,6 +3,9 @@
 
 #include <cstdint>
 #include <list>
+#include <vector>
+#include <fstream>
+#include <memory>
 
 /* Congestion controller interface */
 
@@ -15,6 +18,8 @@ private:
 
   unsigned int datagram_num_;
   std::list< std::pair<uint64_t, uint64_t> > datagram_list_;
+
+  std::unique_ptr<std::ofstream> log_;
 
 public:
   /* Default constructor */
