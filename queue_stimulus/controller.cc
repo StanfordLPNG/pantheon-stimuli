@@ -9,7 +9,8 @@ using namespace std;
 Controller::Controller(const bool debug)
   : debug_(debug)
   , window_size_(10)
-  , window_is_open_(false)
+  , datagram_num_(0)
+  , datagram_list_()
 {}
 
 /* Get current window size, in datagrams */
@@ -25,7 +26,7 @@ unsigned int Controller::window_size(void)
 
 bool Controller::window_is_open(void)
 {
-  return window_is_open_;
+  return datagram_num_ < window_size_;
 }
 
 /* A datagram was sent */
@@ -39,6 +40,9 @@ void Controller::datagram_was_sent(
     cerr << "At time " << send_timestamp
     << " sent datagram " << sequence_number << endl;
   }
+
+  datagram_num_++;
+  datagram_list_.emplace_back(sequence_number, send_timestamp);
 }
 
 /* An ack was received */
@@ -59,11 +63,20 @@ void Controller::ack_received(
     << ", received @ time " << recv_timestamp_acked << " by receiver's clock)"
     << endl;
   }
+
+  for (auto it = datagram_list_.begin(); it != datagram_list_.end(); it++) {
+    if (it->first == sequence_number_acked) {
+      datagram_list_.erase(it);
+      break;
+    } else if (it->first > sequence_number_acked) {
+      break;
+    }
+  }
 }
 
 /* How long to wait (in milliseconds) if there are no acks
    before sending one more datagram */
-unsigned int Controller::timeout_ms(void)
+int Controller::timeout_ms(void)
 {
-  return 1000; /* timeout of one second */
+  return -1;
 }

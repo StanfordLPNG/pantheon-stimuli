@@ -2,6 +2,7 @@
 #define CONTROLLER_HH
 
 #include <cstdint>
+#include <list>
 
 /* Congestion controller interface */
 
@@ -11,7 +12,9 @@ private:
   bool debug_; /* Enables debugging output */
 
   unsigned int window_size_;
-  bool window_is_open_;
+
+  unsigned int datagram_num_;
+  std::list< std::pair<uint64_t, uint64_t> > datagram_list_;
 
 public:
   /* Default constructor */
@@ -34,7 +37,7 @@ public:
 
   /* How long to wait (in milliseconds) if there are no acks
      before sending one more datagram */
-  unsigned int timeout_ms(void);
+  int timeout_ms(void);
 };
 
 #endif
