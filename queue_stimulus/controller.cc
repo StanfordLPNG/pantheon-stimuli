@@ -29,6 +29,14 @@ bool Controller::window_is_open(void)
   return datagram_num_ < window_size_;
 }
 
+void Controller::timer_fires(void)
+{
+  if (debug_) {
+    cerr << "At time " << timestamp_ms()
+    << " timeout timer fires" << endl;
+  }
+}
+
 /* A datagram was sent */
 void Controller::datagram_was_sent(
     const uint64_t sequence_number,

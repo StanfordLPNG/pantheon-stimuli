@@ -25,6 +25,8 @@ public:
 
   bool window_is_open(void);
 
+  void timer_fires(void);
+
   /* A datagram was sent */
   void datagram_was_sent(const uint64_t sequence_number,
                          const uint64_t send_timestamp);

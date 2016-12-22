@@ -7,6 +7,7 @@
 #include "contest_message.hh"
 #include "controller.hh"
 #include "poller.hh"
+#include "timerfd.hh"
 
 using namespace std;
 using namespace PollerShortNames;
@@ -16,6 +17,7 @@ class DatagrumpSender
 {
 private:
   UDPSocket socket_;
+  Timerfd timer_;
   Controller controller_; /* your class */
 
   uint64_t sequence_number_; /* next outgoing sequence number */
@@ -62,6 +64,7 @@ DatagrumpSender::DatagrumpSender(const char * const host,
                                  const char * const port,
                                  const bool debug)
   : socket_(),
+    timer_(TFD_NONBLOCK),
     controller_(debug),
     sequence_number_(0),
     next_ack_expected_(0)
@@ -75,6 +78,10 @@ DatagrumpSender::DatagrumpSender(const char * const host,
   socket_.connect(Address(host, port));
 
   cerr << "Sending to " << socket_.peer_address().to_string() << endl;
+
+  /* timeout timer fires every 2 seconds */
+  int period = 2000; /* ms */
+  timer_.arm(period, period);
 }
 
 void DatagrumpSender::got_ack(const uint64_t timestamp,
@@ -136,7 +143,15 @@ int DatagrumpSender::loop(void)
       return ResultType::Continue;
     }));
 
-  /* Run these two rules forever */
+  /* third rule: timeout timer fires every 2 seconds */
+  poller.add_action(Action(timer_, Direction::In, [&] () {
+      if (timer_.expirations() > 0) {
+        controller_.timer_fires();
+      }
+      return ResultType::Continue;
+    }));
+
+  /* Run these rules forever */
   while (true) {
     const auto ret = poller.poll(controller_.timeout_ms());
     if (ret.result == PollResult::Exit) {
