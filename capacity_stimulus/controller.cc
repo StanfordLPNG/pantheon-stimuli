@@ -1,115 +1,141 @@
 #include <iostream>
-#include <iomanip>
-#include <sstream>
+#include <deque>
+#include <cassert>
+#include <algorithm>
 
 #include "controller.hh"
 #include "timestamp.hh"
 
+#define MIN_WINDOW_SIZE 2
+#define MAX_REORDER_MS 10
+
 using namespace std;
 
 /* Default constructor */
-Controller::Controller(const bool debug)
-  : debug_(debug)
-  , window_size_(1)
-  , datagram_num_(0)
-  , datagram_list_()
-  , log_()
+Controller::Controller( const bool debug )
+  : debug_( debug )
+  , outstanding_datagrams()
+  , max_packets_in_flight(MIN_WINDOW_SIZE)
+  , timestamp_window_last_changed(0)
+  , rtt_ewma(100)
+  , loss_ewma(0)
+  , min_rtt_seen(1000)
+{}
+
+/* Get current window size, in datagrams
+unsigned int Controller::window_size( void )
 {
-    time_t t = time(nullptr);
-    struct tm *now = localtime(&t);
-
-    ostringstream oss;
-    oss << put_time(now, "capacity-%Y-%m-%dT%H-%M-%S");
-    string filename = oss.str() + ".log";
-
-    cerr << "Log saved to " + filename << endl;
-
-    log_.reset(new ofstream(filename));
-}
-
-/* Get current window size, in datagrams */
-unsigned int Controller::window_size(void)
-{
-  if (debug_) {
+  if ( debug_ ) {
     cerr << "At time " << timestamp_ms()
-    << " window size is " << window_size_ << endl;
+        << " window size is " << outstanding_datagrams.size() << endl;
   }
 
-  return window_size_;
+  return outstanding_datagrams.size();
 }
+ */
 
-bool Controller::window_is_open(void)
+bool Controller::window_is_open( void )
 {
-  return datagram_num_ < window_size_;
-}
-
-unsigned int Controller::timer_period(void)
-{
-  return 2000; /* ms */
-}
-
-void Controller::timer_fires(void)
-{
-  if (debug_) {
-    cerr << "At time " << timestamp_ms()
-    << " timeout timer fires" << endl;
-  }
-
-  datagram_list_.clear();
-  datagram_num_ = 0;
+  return outstanding_datagrams.size() < max_packets_in_flight;
 }
 
 /* A datagram was sent */
-void Controller::datagram_was_sent(
-    const uint64_t sequence_number,
-    /* of the sent datagram */
-    const uint64_t send_timestamp)
-    /* in milliseconds */
+void Controller::datagram_was_sent( const uint64_t sequence_number,
+				    /* of the sent datagram */
+				    const uint64_t send_timestamp )
+                                    /* in milliseconds */
 {
-  if (debug_) {
-    cerr << "At time " << send_timestamp
-    << " sent datagram " << sequence_number << endl;
-  }
+  outstanding_datagrams.emplace_back( sequence_number, send_timestamp );
 
-  datagram_num_++;
-  datagram_list_.emplace_back(sequence_number, send_timestamp);
+  if ( debug_ ) {
+    cerr << "At time " << send_timestamp
+	 << " sent datagram " << sequence_number
+        << " window size is " << outstanding_datagrams.size() << endl;
+  }
 }
 
 /* An ack was received */
-void Controller::ack_received(
-    const uint64_t sequence_number_acked,
-    /* what sequence number was acknowledged */
-    const uint64_t send_timestamp_acked,
-    /* when the acknowledged datagram was sent (sender's clock) */
-    const uint64_t recv_timestamp_acked,
-    /* when the acknowledged datagram was received (receiver's clock) */
-    const uint64_t timestamp_ack_received)
-    /* when the ack was received (by sender) */
+void Controller::ack_received( const uint64_t sequence_number_acked,
+			       /* what sequence number was acknowledged */
+			       const uint64_t send_timestamp_acked,
+			       /* when the acknowledged datagram was sent (sender's clock) */
+			       const uint64_t recv_timestamp_acked,
+			       /* when the acknowledged datagram was received (receiver's clock)*/
+			       const uint64_t timestamp_ack_received )
+                               /* when the ack was received (by sender) */
 {
-  if (debug_) {
-    cerr << "At time " << timestamp_ack_received
-    << " received ack for datagram " << sequence_number_acked
-    << " (send @ time " << send_timestamp_acked
-    << ", received @ time " << recv_timestamp_acked << " by receiver's clock)"
-    << endl;
-  }
-
-  /* Write RTTs to log */
-  *log_ << timestamp_ack_received - send_timestamp_acked << endl;
-
-  for (auto it = datagram_list_.begin(); it != datagram_list_.end(); it++) {
-    if (it->first == sequence_number_acked) {
-      datagram_list_.erase(it);
-      break;
-    } else if (it->first > sequence_number_acked) {
-      break;
+    const double ewma_factor = .1;
+    while ( ( outstanding_datagrams.front().second + MAX_REORDER_MS ) < send_timestamp_acked ) {
+        outstanding_datagrams.pop_front();
+        loss_ewma = 1. * ewma_factor + ( 1 - ewma_factor ) * loss_ewma;
     }
-  }
+
+    uint64_t previous_sequence_number = 0;
+    for ( auto sent_datagram = outstanding_datagrams.begin(); sent_datagram != outstanding_datagrams.end(); sent_datagram++ ) {
+        if ( sent_datagram->first == sequence_number_acked ) {
+            outstanding_datagrams.erase( sent_datagram );
+            // packet delivered
+            loss_ewma = 0. * ewma_factor + ( 1 - ewma_factor ) * loss_ewma;
+            break;
+        }
+        if ( sent_datagram->first > sequence_number_acked ) {
+            // ack for packet we already considered lost
+            break;
+        }
+
+        // sanity check sequence numbers monotonic increasing in deque
+        assert( previous_sequence_number < sent_datagram->first );
+        previous_sequence_number = sent_datagram->first;
+    }
+
+    uint64_t rtt = timestamp_ack_received - send_timestamp_acked;
+    min_rtt_seen = min( rtt, min_rtt_seen );
+    rtt_ewma = (double) rtt * ewma_factor + ( 1 - ewma_factor ) * rtt_ewma;
+
+    //cout << "[";
+    //for ( double increment = 0; increment < 1.; increment+= .01 ) {
+    //    if (increment < loss_ewma)
+    //        cout << "|";
+    //    else
+    //        cout << " ";
+    //}
+    //cout << "]" << endl;
+
+    max_packets_in_flight = max( max_packets_in_flight, (uint64_t) MIN_WINDOW_SIZE );
+
+    if ( timestamp_window_last_changed + 10 < timestamp_ack_received ) {
+        if ( loss_ewma > .5 ) {
+            max_packets_in_flight--;
+            max_packets_in_flight--;
+        } else if ( loss_ewma > .05 ) {
+            max_packets_in_flight--;
+        } else if ( loss_ewma > .02 ) {
+            // don't change window
+        } else if ( rtt_ewma < (min_rtt_seen + 10 ) ) {
+            max_packets_in_flight++;
+            max_packets_in_flight++;
+            max_packets_in_flight++;
+        } else if ( rtt_ewma < (min_rtt_seen + 200 ) ) {
+            max_packets_in_flight++;
+        } else if ( rtt_ewma > 1000 ) {
+            max_packets_in_flight--;
+        }
+        timestamp_window_last_changed = timestamp_ack_received;
+    }
+
+    if ( debug_ ) {
+        cerr << "At time " << timestamp_ack_received
+            << " received ack for datagram " << sequence_number_acked
+            << " (send @ time " << send_timestamp_acked
+            << ", received @ time " << recv_timestamp_acked << " by receiver's clock)"
+            << rtt
+            << endl;
+    }
 }
 
 /* How long to wait (in milliseconds) if there are no acks
    before sending one more datagram */
-int Controller::timeout_ms(void)
+int Controller::timeout_ms( void )
 {
-  return -1;
+  return 1500;
 }
