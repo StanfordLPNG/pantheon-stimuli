@@ -95,6 +95,7 @@ void Controller::ack_received(
   }
 
   /* Write RTTs to log */
+  cerr << timestamp_ack_received - send_timestamp_acked << endl;
   *log_ << timestamp_ack_received - send_timestamp_acked << endl;
 
   for (auto it = datagram_list_.begin(); it != datagram_list_.end(); it++) {
