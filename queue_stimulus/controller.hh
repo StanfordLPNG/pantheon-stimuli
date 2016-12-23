@@ -28,9 +28,13 @@ public:
   /* Get current window size, in datagrams */
   unsigned int window_size(void);
 
+  /* If window is open to send more datagrams */
   bool window_is_open(void);
 
+  /* Set the period in ms of timeout timer (return 0 to disable timer) */
   unsigned int timer_period(void);
+
+  /* Timeout timer fires */
   void timer_fires(void);
 
   /* A datagram was sent */
