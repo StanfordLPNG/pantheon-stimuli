@@ -14,8 +14,9 @@ private:
   uint64_t max_packets_in_flight;
   uint64_t timestamp_window_last_changed;
   double rtt_ewma;
-  double loss_ewma;
   uint64_t min_rtt_seen;
+  double short_term_loss_ewma;
+  double long_term_loss_ewma;
 
 public:
   /* Public interface for the congestion controller */

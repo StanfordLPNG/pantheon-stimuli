@@ -7,7 +7,7 @@
 #include "timestamp.hh"
 
 #define MIN_WINDOW_SIZE 2
-#define MAX_REORDER_MS 10
+#define MAX_REORDER_MS 20
 
 using namespace std;
 
@@ -18,8 +18,9 @@ Controller::Controller( const bool debug )
   , max_packets_in_flight(MIN_WINDOW_SIZE)
   , timestamp_window_last_changed(0)
   , rtt_ewma(100)
-  , loss_ewma(0)
   , min_rtt_seen(1000)
+  , short_term_loss_ewma(0)
+  , long_term_loss_ewma(0)
 {}
 
 /* Get current window size, in datagrams
@@ -64,18 +65,21 @@ void Controller::ack_received( const uint64_t sequence_number_acked,
 			       const uint64_t timestamp_ack_received )
                                /* when the ack was received (by sender) */
 {
-    const double ewma_factor = .1;
+    const double short_term_ewma_factor = .05;
+    const double long_term_ewma_factor = .001;
     while ( ( outstanding_datagrams.front().second + MAX_REORDER_MS ) < send_timestamp_acked ) {
         outstanding_datagrams.pop_front();
-        loss_ewma = 1. * ewma_factor + ( 1 - ewma_factor ) * loss_ewma;
+        short_term_loss_ewma = 1. * short_term_ewma_factor + ( 1 - short_term_ewma_factor ) * short_term_loss_ewma;
+        long_term_loss_ewma = 1. * long_term_ewma_factor + ( 1 - long_term_ewma_factor ) * long_term_loss_ewma;
     }
 
     uint64_t previous_sequence_number = 0;
     for ( auto sent_datagram = outstanding_datagrams.begin(); sent_datagram != outstanding_datagrams.end(); sent_datagram++ ) {
         if ( sent_datagram->first == sequence_number_acked ) {
             outstanding_datagrams.erase( sent_datagram );
-            // packet delivered
-            loss_ewma = 0. * ewma_factor + ( 1 - ewma_factor ) * loss_ewma;
+            // for the packet that made it
+            short_term_loss_ewma = 0. * short_term_ewma_factor + ( 1 - short_term_ewma_factor ) * short_term_loss_ewma;
+            long_term_loss_ewma = 0. * long_term_ewma_factor + ( 1 - long_term_ewma_factor ) * long_term_loss_ewma;
             break;
         }
         if ( sent_datagram->first > sequence_number_acked ) {
@@ -88,40 +92,53 @@ void Controller::ack_received( const uint64_t sequence_number_acked,
         previous_sequence_number = sent_datagram->first;
     }
 
+    const double rtt_ewma_factor = .05;
     uint64_t rtt = timestamp_ack_received - send_timestamp_acked;
     min_rtt_seen = min( rtt, min_rtt_seen );
-    rtt_ewma = (double) rtt * ewma_factor + ( 1 - ewma_factor ) * rtt_ewma;
+    rtt_ewma = (double) rtt * rtt_ewma_factor + ( 1 - rtt_ewma_factor ) * rtt_ewma;
 
     //cout << "[";
     //for ( double increment = 0; increment < 1.; increment+= .01 ) {
-    //    if (increment < loss_ewma)
+    //    if (increment < long_term_loss_ewma)
     //        cout << "|";
     //    else
     //        cout << " ";
     //}
-    //cout << "]" << endl;
+    //cout << "]";// << endl;
+
+    // short term changes
+    if (timestamp_window_last_changed + 20 < timestamp_ack_received) {
+        if ( short_term_loss_ewma < .1 and long_term_loss_ewma < .05) {
+            if ( rtt_ewma < (min_rtt_seen + 20 ) ) {
+                max_packets_in_flight++;
+                max_packets_in_flight++;
+                timestamp_window_last_changed = timestamp_ack_received;
+            } else if ( rtt_ewma < (min_rtt_seen + 100 ) ) {
+                max_packets_in_flight++;
+                timestamp_window_last_changed = timestamp_ack_received;
+            }
+        } else {
+            // don't change window
+        }
+    }
+
+    // longer term changes
+    if ( timestamp_window_last_changed + 200 < timestamp_ack_received ) {
+        if ( short_term_loss_ewma > .3 and long_term_loss_ewma > .25 ) {
+            max_packets_in_flight--;
+            timestamp_window_last_changed = timestamp_ack_received;
+        } if ( short_term_loss_ewma < .5 and long_term_loss_ewma < .1 ) {
+            if ( rtt_ewma < (min_rtt_seen + 500 ) ) {
+                max_packets_in_flight++;
+                timestamp_window_last_changed = timestamp_ack_received;
+            }
+        } else if ( rtt_ewma > (min_rtt_seen + 1000 ) ) {
+            max_packets_in_flight--;
+            timestamp_window_last_changed = timestamp_ack_received;
+        }
+    }
 
     max_packets_in_flight = max( max_packets_in_flight, (uint64_t) MIN_WINDOW_SIZE );
-
-    if ( timestamp_window_last_changed + 10 < timestamp_ack_received ) {
-        if ( loss_ewma > .5 ) {
-            max_packets_in_flight--;
-            max_packets_in_flight--;
-        } else if ( loss_ewma > .05 ) {
-            max_packets_in_flight--;
-        } else if ( loss_ewma > .02 ) {
-            // don't change window
-        } else if ( rtt_ewma < (min_rtt_seen + 10 ) ) {
-            max_packets_in_flight++;
-            max_packets_in_flight++;
-            max_packets_in_flight++;
-        } else if ( rtt_ewma < (min_rtt_seen + 200 ) ) {
-            max_packets_in_flight++;
-        } else if ( rtt_ewma > 1000 ) {
-            max_packets_in_flight--;
-        }
-        timestamp_window_last_changed = timestamp_ack_received;
-    }
 
     if ( debug_ ) {
         cerr << "At time " << timestamp_ack_received
