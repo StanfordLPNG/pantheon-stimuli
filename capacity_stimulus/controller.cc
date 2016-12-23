@@ -7,11 +7,12 @@
 
 using namespace std;
 
+const int REORDER = 200;
+
 /* Default constructor */
 Controller::Controller(const bool debug)
   : debug_(debug)
-  , window_size_(1)
-  , datagram_num_(0)
+  , window_size_(500)
   , datagram_list_()
   , log_()
 {
@@ -40,12 +41,12 @@ unsigned int Controller::window_size(void)
 
 bool Controller::window_is_open(void)
 {
-  return datagram_num_ < window_size_;
+  return datagram_list_.size() < window_size_;
 }
 
 unsigned int Controller::timer_period(void)
 {
-  return 2000; /* ms */
+  return 0; /* ms */
 }
 
 void Controller::timer_fires(void)
@@ -54,9 +55,6 @@ void Controller::timer_fires(void)
     cerr << "At time " << timestamp_ms()
     << " timeout timer fires" << endl;
   }
-
-  datagram_list_.clear();
-  datagram_num_ = 0;
 }
 
 /* A datagram was sent */
@@ -71,7 +69,6 @@ void Controller::datagram_was_sent(
     << " sent datagram " << sequence_number << endl;
   }
 
-  datagram_num_++;
   datagram_list_.emplace_back(sequence_number, send_timestamp);
 }
 
@@ -96,6 +93,10 @@ void Controller::ack_received(
 
   /* Write RTTs to log */
   *log_ << timestamp_ack_received - send_timestamp_acked << endl;
+
+  while (datagram_list_.front().second + REORDER < send_timestamp_acked) {
+    datagram_list_.pop_front();
+  }
 
   for (auto it = datagram_list_.begin(); it != datagram_list_.end(); it++) {
     if (it->first == sequence_number_acked) {

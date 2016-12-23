@@ -16,7 +16,6 @@ private:
 
   unsigned int window_size_;
 
-  unsigned int datagram_num_;
   std::list< std::pair<uint64_t, uint64_t> > datagram_list_;
 
   std::unique_ptr<std::ofstream> log_;
