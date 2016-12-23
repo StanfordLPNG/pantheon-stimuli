@@ -10,7 +10,7 @@ using namespace std;
 /* Default constructor */
 Controller::Controller(const bool debug)
   : debug_(debug)
-  , window_size_(10)
+  , window_size_(1)
   , datagram_num_(0)
   , datagram_list_()
   , log_()
@@ -19,7 +19,7 @@ Controller::Controller(const bool debug)
     struct tm *now = localtime(&t);
 
     ostringstream oss;
-    oss << put_time(now, "queue-%Y-%m-%dT%H-%M-%S");
+    oss << put_time(now, "rtt-%Y-%m-%dT%H-%M-%S");
     string filename = oss.str() + ".log";
 
     cerr << "Log saved to " + filename << endl;
@@ -54,14 +54,6 @@ void Controller::timer_fires(void)
     cerr << "At time " << timestamp_ms()
     << " timeout timer fires" << endl;
   }
-
-  float loss_rate = (float) datagram_list_.size() / datagram_num_;
-  *log_ << window_size_ << " " << loss_rate << endl;
-
-  if (window_size_ >= 500 && loss_rate >= 0.5)
-    window_size_ = 10;
-  else
-    window_size_ += 10;
 
   datagram_list_.clear();
   datagram_num_ = 0;
@@ -101,6 +93,9 @@ void Controller::ack_received(
     << ", received @ time " << recv_timestamp_acked << " by receiver's clock)"
     << endl;
   }
+
+  /* Write RTTs to log */
+  *log_ << timestamp_ack_received - send_timestamp_acked << endl;
 
   for (auto it = datagram_list_.begin(); it != datagram_list_.end(); it++) {
     if (it->first == sequence_number_acked) {

@@ -16,8 +16,9 @@ Makefile.in
 /missing
 .deps
 /stamp-h1
-/examples/tcpclient
-/examples/tcpserver
 /compile
-/datagrump/sender
-/datagrump/receiver
+/src/.dirstamp
+/queue_stimulus/sender
+/queue_stimulus/receiver
+/rtt_stimulus/sender
+/rtt_stimulus/receiver
