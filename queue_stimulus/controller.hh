@@ -19,6 +19,8 @@ private:
   unsigned int datagram_num_;
   std::list< std::pair<uint64_t, uint64_t> > datagram_list_;
 
+  uint64_t max_rtt_;
+
   std::unique_ptr<std::ofstream> log_;
 
 public:

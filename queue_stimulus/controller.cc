@@ -13,6 +13,7 @@ Controller::Controller(const bool debug)
   , window_size_(10)
   , datagram_num_(0)
   , datagram_list_()
+  , max_rtt_(0)
   , log_()
 {
     time_t t = time(nullptr);
@@ -56,13 +57,12 @@ void Controller::timer_fires(void)
   }
 
   float loss_rate = (float) datagram_list_.size() / datagram_num_;
-  *log_ << window_size_ << " " << loss_rate << endl;
+  cerr << window_size_ << " " << loss_rate << " " << max_rtt_ << endl;
+  *log_ << window_size_ << " " << loss_rate << " " << max_rtt_ << endl;
 
-  if (window_size_ >= 500 && loss_rate >= 0.5)
-    window_size_ = 10;
-  else
-    window_size_ += 10;
+  window_size_ += 10;
 
+  max_rtt_ = 0;
   datagram_list_.clear();
   datagram_num_ = 0;
 }
@@ -101,6 +101,10 @@ void Controller::ack_received(
     << ", received @ time " << recv_timestamp_acked << " by receiver's clock)"
     << endl;
   }
+
+  uint64_t rtt = timestamp_ack_received - send_timestamp_acked;
+  if (rtt > max_rtt_)
+    max_rtt_ = rtt;
 
   for (auto it = datagram_list_.begin(); it != datagram_list_.end(); it++) {
     if (it->first == sequence_number_acked) {

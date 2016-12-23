@@ -83,6 +83,8 @@ void Controller::ack_received(
     const uint64_t timestamp_ack_received)
     /* when the ack was received (by sender) */
 {
+  static uint64_t recv_ts_acked_base = recv_timestamp_acked;
+
   if (debug_) {
     cerr << "At time " << timestamp_ack_received
     << " received ack for datagram " << sequence_number_acked
@@ -91,8 +93,8 @@ void Controller::ack_received(
     << endl;
   }
 
-  /* Write RTTs to log */
-  *log_ << timestamp_ack_received - send_timestamp_acked << endl;
+  cerr << timestamp_ack_received - send_timestamp_acked << endl;
+  *log_ << recv_timestamp_acked - recv_ts_acked_base << endl;
 
   while (datagram_list_.front().second + REORDER < send_timestamp_acked) {
     datagram_list_.pop_front();
