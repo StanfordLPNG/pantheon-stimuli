@@ -26,5 +26,6 @@ AC_TYPE_UINT16_T
 
 # Checks for library functions.
 
-AC_CONFIG_FILES([Makefile src/Makefile queue_stimulus/Makefile rtt_stimulus/Makefile])
+AC_CONFIG_FILES([Makefile src/Makefile queue_stimulus/Makefile
+                 rtt_stimulus/Makefile capacity_stimulus/Makefile])
 AC_OUTPUT
