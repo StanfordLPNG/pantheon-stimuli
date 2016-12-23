@@ -43,6 +43,11 @@ bool Controller::window_is_open(void)
   return datagram_num_ < window_size_;
 }
 
+unsigned int Controller::timer_period(void)
+{
+  return 2000; /* ms */
+}
+
 void Controller::timer_fires(void)
 {
   if (debug_) {

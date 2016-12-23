@@ -30,6 +30,7 @@ public:
 
   bool window_is_open(void);
 
+  unsigned int timer_period(void);
   void timer_fires(void);
 
   /* A datagram was sent */

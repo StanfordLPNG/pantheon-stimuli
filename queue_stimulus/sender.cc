@@ -79,8 +79,7 @@ DatagrumpSender::DatagrumpSender(const char * const host,
 
   cerr << "Sending to " << socket_.peer_address().to_string() << endl;
 
-  /* timeout timer fires every 2 seconds */
-  int period = 2000; /* ms */
+  int period = controller_.timer_period();
   timer_.arm(period, period);
 }
 
@@ -143,13 +142,14 @@ int DatagrumpSender::loop(void)
       return ResultType::Continue;
     }));
 
-  /* third rule: timeout timer fires every 2 seconds */
+  /* third rule: timeout timer */
   poller.add_action(Action(timer_, Direction::In, [&] () {
       if (timer_.expirations() > 0) {
         controller_.timer_fires();
       }
       return ResultType::Continue;
-    }));
+    },
+    [&] () { return controller_.timer_period(); }));
 
   /* Run these rules forever */
   while (true) {
