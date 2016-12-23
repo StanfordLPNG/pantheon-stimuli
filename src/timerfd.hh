@@ -15,13 +15,13 @@ public:
   Timerfd(int flags = 0);
 
   /* Start the timer with first expiration time and period */
-  void arm(int first_exp_ms, int interval_ms = 0);
+  void arm(unsigned int first_exp_ms, unsigned int interval_ms = 0);
 
   /* Return true if the timer has stopped */
   bool is_disarmed();
 
   /* Return the number of expirations occurred */
-  int expirations();
+  unsigned int expirations();
 };
 
 #endif /* TIMERFD_H */

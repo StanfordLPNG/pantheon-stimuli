@@ -9,13 +9,13 @@ Timerfd::Timerfd(int flags)
                               timerfd_create(CLOCK_REALTIME, flags)))
 {}
 
-void Timerfd::arm(int first_exp_ms, int interval_ms)
+void Timerfd::arm(unsigned int first_exp_ms, unsigned int interval_ms)
 {
-  int first_exp_s = first_exp_ms / 1000;
-  int first_exp_ns = (first_exp_ms - first_exp_s * 1000) * 1000000;
+  unsigned int first_exp_s = first_exp_ms / 1000;
+  unsigned int first_exp_ns = (first_exp_ms - first_exp_s * 1000) * 1000000;
 
-  int interval_s = interval_ms / 1000;
-  int interval_ns = (interval_ms - interval_s * 1000) * 1000000;
+  unsigned int interval_s = interval_ms / 1000;
+  unsigned int interval_ns = (interval_ms - interval_s * 1000) * 1000000;
 
   struct itimerspec ts;
   ts.it_value.tv_sec = first_exp_s;
@@ -33,7 +33,7 @@ bool Timerfd::is_disarmed()
   return (curr_ts.it_value.tv_sec == 0 && curr_ts.it_value.tv_nsec == 0);
 }
 
-int Timerfd::expirations()
+unsigned int Timerfd::expirations()
 {
   uint64_t num_exp = 0;
 
@@ -43,6 +43,6 @@ int Timerfd::expirations()
   }
 
   register_read();
-  return (int) num_exp;
+  return (unsigned int) num_exp;
 }
 
