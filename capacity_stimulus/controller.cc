@@ -7,7 +7,7 @@
 
 using namespace std;
 
-const int REORDER = 200;
+const int REORDER = 20;
 
 /* Default constructor */
 Controller::Controller(const bool debug)
