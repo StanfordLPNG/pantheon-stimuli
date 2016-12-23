@@ -3,7 +3,7 @@
 
 AC_PREREQ([2.68])
 AC_INIT([pantheon-stimuli], [1.0], [snr@cs.stanford.edu])
-AM_INIT_AUTOMAKE([foreign])
+AM_INIT_AUTOMAKE([foreign subdir-objects])
 AC_CONFIG_SRCDIR([src/address.hh])
 AC_CONFIG_HEADERS([config.h])
 
