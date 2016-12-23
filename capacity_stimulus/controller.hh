@@ -2,6 +2,8 @@
 #define CONTROLLER_HH
 
 #include <cstdint>
+#include <memory>
+#include <fstream>
 #include <deque>
 
 /* Congestion controller interface */
@@ -17,6 +19,7 @@ private:
   uint64_t min_rtt_seen;
   double short_term_loss_ewma;
   double long_term_loss_ewma;
+  std::unique_ptr<std::ofstream> log_;
 
 public:
   /* Public interface for the congestion controller */

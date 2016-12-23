@@ -1,5 +1,7 @@
 #include <iostream>
 #include <deque>
+#include <sstream>
+#include <iomanip>
 #include <cassert>
 #include <algorithm>
 
@@ -21,7 +23,19 @@ Controller::Controller( const bool debug )
   , min_rtt_seen(1000)
   , short_term_loss_ewma(0)
   , long_term_loss_ewma(0)
-{}
+  , log_()
+{
+    time_t t = time(nullptr);
+    struct tm *now = localtime(&t);
+
+    ostringstream oss;
+    oss << put_time(now, "greg-capacity-%Y-%m-%dT%H-%M-%S");
+    string filename = oss.str() + ".log";
+
+    cerr << "Log saved to " + filename << endl;
+
+    log_.reset(new ofstream(filename));
+}
 
 /* Get current window size, in datagrams
 unsigned int Controller::window_size( void )
@@ -65,6 +79,11 @@ void Controller::ack_received( const uint64_t sequence_number_acked,
 			       const uint64_t timestamp_ack_received )
                                /* when the ack was received (by sender) */
 {
+    /* Write RTTs to log */
+    *log_ << timestamp_ack_received - send_timestamp_acked << endl;
+
+
+
     const double short_term_ewma_factor = .05;
     const double long_term_ewma_factor = .001;
     while ( ( outstanding_datagrams.front().second + MAX_REORDER_MS ) < send_timestamp_acked ) {
