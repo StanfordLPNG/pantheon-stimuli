@@ -27,6 +27,12 @@ Controller::Controller(const bool debug)
     log_.reset(new ofstream(filename));
 }
 
+/* Payload size of every datagram */
+unsigned int Controller::payload_size(void)
+{
+  return 0;
+}
+
 /* Get current window size, in datagrams */
 unsigned int Controller::window_size(void)
 {
@@ -38,16 +44,19 @@ unsigned int Controller::window_size(void)
   return window_size_;
 }
 
+/* If window is open to send more datagrams */
 bool Controller::window_is_open(void)
 {
   return datagram_num_ < window_size_;
 }
 
+/* Set the period in ms of timeout timer (return 0 to disable timer) */
 unsigned int Controller::timer_period(void)
 {
-  return 2000; /* ms */
+  return 2000;
 }
 
+/* Timeout timer fires */
 void Controller::timer_fires(void)
 {
   if (debug_) {

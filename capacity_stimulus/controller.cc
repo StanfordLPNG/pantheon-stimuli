@@ -12,7 +12,7 @@ const int REORDER = 20;
 /* Default constructor */
 Controller::Controller(const bool debug)
   : debug_(debug)
-  , window_size_(500)
+  , window_size_(200)
   , datagram_list_()
   , log_()
 {
@@ -28,6 +28,12 @@ Controller::Controller(const bool debug)
     log_.reset(new ofstream(filename));
 }
 
+/* Payload size of every datagram */
+unsigned int Controller::payload_size(void)
+{
+  return 1388;
+}
+
 /* Get current window size, in datagrams */
 unsigned int Controller::window_size(void)
 {
@@ -39,16 +45,19 @@ unsigned int Controller::window_size(void)
   return window_size_;
 }
 
+/* If window is open to send more datagrams */
 bool Controller::window_is_open(void)
 {
   return datagram_list_.size() < window_size_;
 }
 
+/* Set the period in ms of timeout timer (return 0 to disable timer) */
 unsigned int Controller::timer_period(void)
 {
-  return 0; /* ms */
+  return 0;
 }
 
+/* Timeout timer fires */
 void Controller::timer_fires(void)
 {
   if (debug_) {
@@ -93,8 +102,7 @@ void Controller::ack_received(
     << endl;
   }
 
-  cerr << timestamp_ack_received - send_timestamp_acked << endl;
-  *log_ << recv_timestamp_acked - recv_ts_acked_base << endl;
+  *log_ << recv_timestamp_acked - recv_ts_acked_base << " # 1500" << endl;
 
   while (datagram_list_.front().second + REORDER < send_timestamp_acked) {
     datagram_list_.pop_front();

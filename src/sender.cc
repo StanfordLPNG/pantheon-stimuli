@@ -104,7 +104,7 @@ void DatagrumpSender::got_ack(const uint64_t timestamp,
 void DatagrumpSender::send_datagram(void)
 {
   /* All messages use the same dummy payload */
-  static const string dummy_payload(1388, 'x');
+  static const string dummy_payload(controller_.payload_size(), 'x');
 
   ContestMessage cm(sequence_number_++, dummy_payload);
   cm.set_send_timestamp();

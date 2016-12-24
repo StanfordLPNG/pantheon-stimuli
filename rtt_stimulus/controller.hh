@@ -25,6 +25,9 @@ public:
   /* Default constructor */
   Controller(const bool debug);
 
+  /* Payload size of every datagram */
+  unsigned int payload_size(void);
+
   /* Get current window size, in datagrams */
   unsigned int window_size(void);
 
