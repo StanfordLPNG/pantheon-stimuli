@@ -102,18 +102,21 @@ void Controller::ack_received(
     << endl;
   }
 
-  *log_ << recv_timestamp_acked - recv_ts_acked_base << " # 1500" << endl;
+  *log_ << recv_timestamp_acked - recv_ts_acked_base << endl;
 
   while (datagram_list_.front().second + REORDER < send_timestamp_acked) {
     datagram_list_.pop_front();
   }
 
-  for (auto it = datagram_list_.begin(); it != datagram_list_.end(); it++) {
+  auto it = datagram_list_.begin();
+  while (it != datagram_list_.end()) {
     if (it->first == sequence_number_acked) {
-      datagram_list_.erase(it);
+      it = datagram_list_.erase(it);
       break;
     } else if (it->first > sequence_number_acked) {
       break;
+    } else {
+      it++;
     }
   }
 }

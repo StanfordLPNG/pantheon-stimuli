@@ -107,12 +107,15 @@ void Controller::ack_received(
   cerr << timestamp_ack_received - send_timestamp_acked << endl;
   *log_ << timestamp_ack_received - send_timestamp_acked << endl;
 
-  for (auto it = datagram_list_.begin(); it != datagram_list_.end(); it++) {
+  auto it = datagram_list_.begin();
+  while (it != datagram_list_.end()) {
     if (it->first == sequence_number_acked) {
-      datagram_list_.erase(it);
+      it = datagram_list_.erase(it);
       break;
     } else if (it->first > sequence_number_acked) {
       break;
+    } else {
+      it++;
     }
   }
 }
