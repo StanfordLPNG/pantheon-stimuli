@@ -11,9 +11,10 @@ using namespace std;
 Controller::Controller(const bool debug)
   : debug_(debug)
   , window_size_(10)
+  , interim_window_size_(1)
+  , max_rtt_(0)
   , datagram_num_(0)
   , datagram_list_()
-  , max_rtt_(0)
   , log_()
 {
     time_t t = time(nullptr);
@@ -48,7 +49,7 @@ unsigned int Controller::window_size(void)
 /* If window is open to send more datagrams */
 bool Controller::window_is_open(void)
 {
-  return datagram_num_ < window_size_;
+  return datagram_num_ < interim_window_size_;
 }
 
 /* Set the period in ms of timeout timer (return 0 to disable timer) */
@@ -65,15 +66,16 @@ void Controller::timer_fires(void)
     << " timeout timer fires" << endl;
   }
 
-  float loss_rate = (float) datagram_list_.size() / datagram_num_;
+  float loss_rate = (float) datagram_list_.size() / window_size_;
   cerr << window_size_ << " " << loss_rate << " " << max_rtt_ << endl;
   *log_ << window_size_ << " " << loss_rate << " " << max_rtt_ << endl;
 
   window_size_ += 10;
+  interim_window_size_ = 1;
 
   max_rtt_ = 0;
-  datagram_list_.clear();
   datagram_num_ = 0;
+  datagram_list_.clear();
 }
 
 /* A datagram was sent */
@@ -111,14 +113,20 @@ void Controller::ack_received(
     << endl;
   }
 
-  uint64_t rtt = timestamp_ack_received - send_timestamp_acked;
-  if (rtt > max_rtt_)
-    max_rtt_ = rtt;
-
   auto it = datagram_list_.begin();
   while (it != datagram_list_.end()) {
     if (it->first == sequence_number_acked) {
       it = datagram_list_.erase(it);
+
+      if (interim_window_size_ < window_size_) {
+        datagram_num_--;
+        interim_window_size_++;
+      } else {
+        uint64_t rtt = timestamp_ack_received - send_timestamp_acked;
+        if (rtt > max_rtt_)
+          max_rtt_ = rtt;
+      }
+
       break;
     } else if (it->first > sequence_number_acked) {
       break;

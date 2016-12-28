@@ -15,11 +15,11 @@ private:
   bool debug_; /* Enables debugging output */
 
   unsigned int window_size_;
+  unsigned int interim_window_size_;
+  uint64_t max_rtt_;
 
   unsigned int datagram_num_;
   std::list< std::pair<uint64_t, uint64_t> > datagram_list_;
-
-  uint64_t max_rtt_;
 
   std::unique_ptr<std::ofstream> log_;
 
