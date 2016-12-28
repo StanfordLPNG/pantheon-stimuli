@@ -11,7 +11,6 @@ using namespace std;
 Controller::Controller(const bool debug)
   : debug_(debug)
   , window_size_(1)
-  , datagram_num_(0)
   , datagram_list_()
   , log_()
 {
@@ -47,13 +46,13 @@ unsigned int Controller::window_size(void)
 /* If window is open to send more datagrams */
 bool Controller::window_is_open(void)
 {
-  return datagram_num_ < window_size_;
+  return datagram_list_.size() < window_size_;
 }
 
 /* Set the period in ms of timeout timer (return 0 to disable timer) */
 unsigned int Controller::timer_period(void)
 {
-  return 2000;
+  return 0;
 }
 
 /* Timeout timer fires */
@@ -63,9 +62,6 @@ void Controller::timer_fires(void)
     cerr << "At time " << timestamp_ms()
     << " timeout timer fires" << endl;
   }
-
-  datagram_list_.clear();
-  datagram_num_ = 0;
 }
 
 /* A datagram was sent */
@@ -80,7 +76,6 @@ void Controller::datagram_was_sent(
     << " sent datagram " << sequence_number << endl;
   }
 
-  datagram_num_++;
   datagram_list_.emplace_back(sequence_number, send_timestamp);
 }
 
@@ -104,8 +99,9 @@ void Controller::ack_received(
   }
 
   /* Write RTTs to log */
-  cerr << timestamp_ack_received - send_timestamp_acked << endl;
-  *log_ << timestamp_ack_received - send_timestamp_acked << endl;
+  uint64_t rtt = timestamp_ack_received - send_timestamp_acked;
+  cerr << rtt << endl;
+  *log_ << rtt << endl;
 
   auto it = datagram_list_.begin();
   while (it != datagram_list_.end()) {
