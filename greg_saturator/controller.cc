@@ -37,6 +37,12 @@ Controller::Controller( const bool debug )
     log_.reset(new ofstream(filename));
 }
 
+/* Payload size of every datagram */
+unsigned int payload_size(void)
+{
+  return 1388;
+}
+
 bool Controller::window_is_open( void )
 {
   return outstanding_datagrams.size() < max_packets_in_flight;

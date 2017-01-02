@@ -29,6 +29,9 @@ public:
   /* Default constructor */
   Controller( const bool debug );
 
+  /* Payload size of every datagram */
+  unsigned int payload_size(void);
+
   bool window_is_open( void );
 
   /* Set the period in ms of timeout timer (return 0 to disable timer) */
