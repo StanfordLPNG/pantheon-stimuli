@@ -8,11 +8,12 @@
 using namespace std;
 
 const int REORDER = 20;
+const int MAX_WIN = 1600;
 
 /* Default constructor */
 Controller::Controller(const bool debug)
   : debug_(debug)
-  , window_size_(200)
+  , window_size_(50)
   , datagram_list_()
   , log_()
 {
@@ -112,6 +113,8 @@ void Controller::ack_received(
   while (it != datagram_list_.end()) {
     if (it->first == sequence_number_acked) {
       it = datagram_list_.erase(it);
+      if (window_size_ < MAX_WIN)
+        window_size_++;
       break;
     } else if (it->first > sequence_number_acked) {
       break;
