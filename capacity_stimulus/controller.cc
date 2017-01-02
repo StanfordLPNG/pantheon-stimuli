@@ -8,12 +8,13 @@
 using namespace std;
 
 const int REORDER = 20;
-const int MAX_WIN = 1600;
+const int MIN_WIN = 20;
+const int MAX_WIN = 200;
 
 /* Default constructor */
 Controller::Controller(const bool debug)
   : debug_(debug)
-  , window_size_(50)
+  , window_size_(MIN_WIN)
   , datagram_list_()
   , log_()
 {
@@ -107,6 +108,8 @@ void Controller::ack_received(
 
   while (datagram_list_.front().second + REORDER < send_timestamp_acked) {
     datagram_list_.pop_front();
+    if (window_size_ > MIN_WIN)
+      window_size_--;
   }
 
   auto it = datagram_list_.begin();
