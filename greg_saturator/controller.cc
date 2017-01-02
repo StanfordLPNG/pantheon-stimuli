@@ -29,25 +29,13 @@ Controller::Controller( const bool debug )
     struct tm *now = localtime(&t);
 
     ostringstream oss;
-    oss << put_time(now, "greg-capacity-%Y-%m-%dT%H-%M-%S");
+    oss << put_time(now, "greg-saturator-%Y-%m-%dT%H-%M-%S");
     string filename = oss.str() + ".log";
 
     cerr << "Log saved to " + filename << endl;
 
     log_.reset(new ofstream(filename));
 }
-
-/* Get current window size, in datagrams
-unsigned int Controller::window_size( void )
-{
-  if ( debug_ ) {
-    cerr << "At time " << timestamp_ms()
-        << " window size is " << outstanding_datagrams.size() << endl;
-  }
-
-  return outstanding_datagrams.size();
-}
- */
 
 bool Controller::window_is_open( void )
 {
