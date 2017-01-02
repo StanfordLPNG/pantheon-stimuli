@@ -1,1 +1,1 @@
-SUBDIRS = src queue_stimulus rtt_stimulus capacity_stimulus greg_saturator
+SUBDIRS = src queue_stimulus rtt_stimulus capacity_stimulus greg_capacity_stimulus 
