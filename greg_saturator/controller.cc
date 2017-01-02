@@ -38,7 +38,7 @@ Controller::Controller( const bool debug )
 }
 
 /* Payload size of every datagram */
-unsigned int payload_size(void)
+unsigned int Controller::payload_size(void)
 {
   return 1388;
 }
@@ -46,6 +46,17 @@ unsigned int payload_size(void)
 bool Controller::window_is_open( void )
 {
   return outstanding_datagrams.size() < max_packets_in_flight;
+}
+
+  /* Set the period in ms of timeout timer (return 0 to disable timer) */
+unsigned int Controller::timer_period(void)
+{
+  return 0;
+}
+
+/* Timeout timer fires */
+void Controller::timer_fires(void)
+{
 }
 
 /* A datagram was sent */

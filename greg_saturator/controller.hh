@@ -35,10 +35,10 @@ public:
   bool window_is_open( void );
 
   /* Set the period in ms of timeout timer (return 0 to disable timer) */
-  unsigned int timer_period(void) { return 0; };
+  unsigned int timer_period(void);
 
   /* Timeout timer fires */
-  void timer_fires(void) {};
+  void timer_fires(void);
 
   /* A datagram was sent */
   void datagram_was_sent( const uint64_t sequence_number,
