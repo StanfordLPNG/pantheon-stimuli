@@ -162,7 +162,7 @@ void Controller::ack_received( const uint64_t sequence_number_acked,
         }
     }
 
-    max_packets_in_flight = max( max_packets_in_flight, (unsigned int) MIN_WINDOW_SIZE );
+    max_packets_in_flight = max( max_packets_in_flight, (size_t) MIN_WINDOW_SIZE );
 
     if ( debug_ ) {
         cerr << "At time " << timestamp_ack_received

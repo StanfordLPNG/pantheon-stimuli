@@ -13,7 +13,7 @@ class Controller
 private:
   bool debug_; /* Enables debugging output */
   std::deque<std::pair<uint64_t, uint64_t>> outstanding_datagrams; // (sequence_number, send_timestamp)
-  unsigned int max_packets_in_flight;
+  size_t max_packets_in_flight;
   uint64_t timestamp_window_last_changed;
   double rtt_ewma;
   uint64_t min_rtt_seen;
