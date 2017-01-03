@@ -21,10 +21,9 @@ Controller::Controller(const bool debug)
     time_t t = time(nullptr);
     struct tm *now = localtime(&t);
 
-    ostringstream oss;
-    oss << put_time(now, "capacity-%Y-%m-%dT%H-%M-%S");
-    string filename = oss.str() + ".log";
-
+    char buffer[80];
+    strftime(buffer, sizeof(buffer), "capacity-%Y-%m-%dT%H-%M-%S.log", now);
+    string filename(buffer);
     cerr << "Log saved to " + filename << endl;
 
     log_.reset(new ofstream(filename));
