@@ -87,8 +87,6 @@ void Controller::ack_received( const uint64_t sequence_number_acked,
     /* Write RTTs to log */
     *log_ << timestamp_ack_received - send_timestamp_acked << endl;
 
-
-
     const double short_term_ewma_factor = .05;
     const double long_term_ewma_factor = .001;
     while ( ( outstanding_datagrams.front().second + MAX_REORDER_MS ) < send_timestamp_acked ) {
@@ -98,22 +96,25 @@ void Controller::ack_received( const uint64_t sequence_number_acked,
     }
 
     uint64_t previous_sequence_number = 0;
-    for ( auto sent_datagram = outstanding_datagrams.begin(); sent_datagram != outstanding_datagrams.end(); sent_datagram++ ) {
-        if ( sent_datagram->first == sequence_number_acked ) {
-            outstanding_datagrams.erase( sent_datagram );
-            // for the packet that made it
-            short_term_loss_ewma = 0. * short_term_ewma_factor + ( 1 - short_term_ewma_factor ) * short_term_loss_ewma;
-            long_term_loss_ewma = 0. * long_term_ewma_factor + ( 1 - long_term_ewma_factor ) * long_term_loss_ewma;
-            break;
-        }
-        if ( sent_datagram->first > sequence_number_acked ) {
-            // ack for packet we already considered lost
-            break;
-        }
 
-        // sanity check sequence numbers monotonic increasing in deque
-        assert( previous_sequence_number < sent_datagram->first );
-        previous_sequence_number = sent_datagram->first;
+    auto it = outstanding_datagrams.begin();
+    while (it != outstanding_datagrams.end()) {
+        if (it->first == sequence_number_acked) {
+          it = outstanding_datagrams.erase(it);
+          // for the packet that made it
+          short_term_loss_ewma = 0. * short_term_ewma_factor + ( 1 - short_term_ewma_factor ) * short_term_loss_ewma;
+          long_term_loss_ewma = 0. * long_term_ewma_factor + ( 1 - long_term_ewma_factor ) * long_term_loss_ewma;
+          break;
+        } else if (it->first > sequence_number_acked) {
+          // ack for packet we already considered lost
+          break;
+        } else {
+          // sanity check sequence numbers monotonic increasing in deque
+          assert( previous_sequence_number < it->first );
+          previous_sequence_number = it->first;
+
+          it++;
+        }
     }
 
     const double rtt_ewma_factor = .05;
