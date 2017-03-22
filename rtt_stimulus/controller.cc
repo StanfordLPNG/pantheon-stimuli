@@ -17,12 +17,14 @@ Controller::Controller(const bool debug)
     time_t t = time(nullptr);
     struct tm *now = localtime(&t);
 
-    char buffer[80];
-    strftime(buffer, sizeof(buffer), "rtt-%Y-%m-%dT%H-%M-%S.log", now);
-    string filename(buffer);
-    cerr << "Log saved to " + filename << endl;
+    if (debug_) {
+      char buffer[80];
+      strftime(buffer, sizeof(buffer), "rtt-%Y-%m-%dT%H-%M-%S.log", now);
+      string filename(buffer);
+      cerr << "Log saved to " + filename << endl;
 
-    log_.reset(new ofstream(filename));
+      log_.reset(new ofstream(filename));
+   }
 }
 
 /* Payload size of every datagram */
@@ -100,7 +102,9 @@ void Controller::ack_received(
   /* Write RTTs to log */
   uint64_t rtt = timestamp_ack_received - send_timestamp_acked;
   cerr << rtt << endl;
-  *log_ << rtt << endl;
+  if (debug_) {
+    *log_ << rtt << endl;
+  }
 
   auto it = datagram_list_.begin();
   while (it != datagram_list_.end()) {

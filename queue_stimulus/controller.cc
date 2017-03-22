@@ -20,12 +20,14 @@ Controller::Controller(const bool debug)
     time_t t = time(nullptr);
     struct tm *now = localtime(&t);
 
-    char buffer[80];
-    strftime(buffer, sizeof(buffer), "queue-%Y-%m-%dT%H-%M-%S.log", now);
-    string filename(buffer);
-    cerr << "Log saved to " + filename << endl;
+    if (debug_) {
+      char buffer[80];
+      strftime(buffer, sizeof(buffer), "queue-%Y-%m-%dT%H-%M-%S.log", now);
+      string filename(buffer);
+      cerr << "Log saved to " + filename << endl;
 
-    log_.reset(new ofstream(filename));
+      log_.reset(new ofstream(filename));
+    }
 }
 
 /* Payload size of every datagram */
@@ -67,7 +69,10 @@ void Controller::timer_fires(void)
 
   float loss_rate = (float) datagram_list_.size() / window_size_;
   cerr << window_size_ << " " << loss_rate << " " << max_rtt_ << endl;
-  *log_ << window_size_ << " " << loss_rate << " " << max_rtt_ << endl;
+
+  if (debug_) {
+    *log_ << window_size_ << " " << loss_rate << " " << max_rtt_ << endl;
+  }
 
   window_size_ += 10;
   interim_window_size_ = 1;

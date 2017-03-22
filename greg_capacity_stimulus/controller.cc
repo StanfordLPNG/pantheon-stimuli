@@ -28,13 +28,15 @@ Controller::Controller( const bool debug )
     time_t t = time(nullptr);
     struct tm *now = localtime(&t);
 
-    char buffer[80];
-    strftime(buffer, sizeof(buffer),
-             "greg-saturator-%Y-%m-%dT%H-%M-%S.log", now);
-    string filename(buffer);
-    cerr << "Log saved to " + filename << endl;
+    if (debug_) {
+      char buffer[80];
+      strftime(buffer, sizeof(buffer),
+               "greg-saturator-%Y-%m-%dT%H-%M-%S.log", now);
+      string filename(buffer);
+      cerr << "Log saved to " + filename << endl;
 
-    log_.reset(new ofstream(filename));
+      log_.reset(new ofstream(filename));
+    }
 }
 
 /* Payload size of every datagram */
@@ -85,7 +87,9 @@ void Controller::ack_received( const uint64_t sequence_number_acked,
                                /* when the ack was received (by sender) */
 {
     /* Write RTTs to log */
-    *log_ << timestamp_ack_received - send_timestamp_acked << endl;
+    if (debug_) {
+      *log_ << timestamp_ack_received - send_timestamp_acked << endl;
+    }
 
     const double short_term_ewma_factor = .05;
     const double long_term_ewma_factor = .001;
