@@ -1,4 +1,5 @@
-Sourdough: example classes for network programming
+# pantheon-stimuli
+Pantheon Stimuli: stimuli schemes used for calibrating emulators
 
 To build:
 
